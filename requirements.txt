@@ -1,0 +1,7 @@
+Flask
+google-genai
+Pillow
+yt-dlp
+opencv-python-headless
+numpy
+python-dotenv

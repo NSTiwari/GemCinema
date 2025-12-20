@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Movie Recreator | Studio Mode</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-visual: #f1f5f9; 
+            --accent: #2563eb;
+            --radius: 20px;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .header { 
+            padding: 10px 20px 0 20px; 
+            text-align: center; 
+            flex-shrink: 0; 
+            background: transparent; 
+        }
+
+        /* --- Carousel Viewport --- */
+        .carousel-viewport {
+            flex-grow: 1; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            perspective: 2000px; 
+            padding: 10px 20px 20px 20px; 
+            overflow: hidden;
+        }
+
+        /* --- The Card --- */
+        .carousel-step {
+            position: absolute;
+            width: 95%; max-width: 1200px;
+            height: 82vh; max-height: 850px;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            display: flex; flex-direction: column;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+            opacity: 0; pointer-events: none; overflow: hidden;
+        }
+
+        .carousel-step.active { opacity: 1; pointer-events: auto; transform: translateX(0) scale(1); z-index: 20; }
+        .carousel-step.prev { opacity: 0; transform: translateX(-40%) scale(0.95); z-index: 10; } 
+        .carousel-step.next { opacity: 0; transform: translateX(40%) scale(0.95); z-index: 10; }
+
+        /* --- Internal Zones --- */
+        .step-header {
+            padding: 15px 30px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; flex-shrink: 0;
+        }
+
+        .step-visuals {
+            flex-grow: 1;
+            background-color: var(--bg-visual);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            overflow: hidden; 
+            position: relative;
+        }
+
+        .step-controls {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+
+        /* --- Images & Video Handling --- */
+        .cinema-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cinema-asset {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; 
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+            background: white;
+        }
+        
+        .cinema-grid:has(img:nth-child(2)) img { max-width: 48%; }
+        .cinema-grid:has(img:only-child) img { max-height: 95%; }
+
+        /* --- Components --- */
+        .input-std {
+            width: 100%; padding: 12px 16px;
+            background: #f8fafc; border: 1px solid #cbd5e1;
+            border-radius: 8px; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .input-std:focus { background: white; border-color: var(--accent); outline: none; ring: 2px solid #bfdbfe; }
+
+        .btn-primary {
+            background: var(--accent); color: white; font-weight: 600;
+            padding: 12px 24px; border-radius: 8px;
+            transition: background 0.2s; white-space: nowrap;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        
+        .btn-secondary {
+            background: white; color: #475569; border: 1px solid #cbd5e1;
+            padding: 12px 24px; border-radius: 8px; font-weight: 600;
+            transition: 0.2s; white-space: nowrap;
+        }
+        .btn-secondary:hover { background: #f1f5f9; color: #0f172a; }
+
+        .file-drop {
+            border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; background: white;
+            padding: 10px; text-align: center; height: 100%;
+        }
+        .file-drop:hover { border-color: var(--accent); background: #f8fafc; }
+
+        /* --- Navigation --- */
+        .nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50px; height: 50px; background: white; border: 1px solid #e2e8f0;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; z-index: 50; transition: 0.2s;
+        }
+        .nav-btn:hover { transform: translateY(-50%) scale(1.1); color: var(--accent); border-color: var(--accent); }
+        .nav-btn:disabled { opacity: 0; pointer-events: none; }
+
+        #loader {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 1000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid #e2e8f0;
+            border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p class="mt-4 font-bold text-slate-700 tracking-wide">Processing...</p>
+    </div>
+
+    <header class="header">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">GemCinema - Recreate movie scenes with Gemini 3 Pro and Veo 3.1</h1>
+        <div class="flex items-center justify-center gap-2 text-[1.0 rem] font-semibold text-slate-500 mt-1">
+            Created by <img src="{{ url_for('assets', filename='dev-logo.png') }}" class="h-3 opacity-80"> Nitin Tiwari
+        </div>
+    </header>
+
+    <div class="carousel-viewport">
+        <button id="prevBtn" class="nav-btn left-4" onclick="goToStep(currentStep-1)">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button id="nextBtn" class="nav-btn right-4" onclick="goToStep(currentStep+1)">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+        </button>
+
+        <!-- STEP 1: SOURCE -->
+        <div class="carousel-step active" id="step0">
+            <div class="step-header">
+                <h2 class="text-xl font-bold text-slate-800">Step 1: Movie Source</h2>
+                <button onclick="resetApp()" class="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-wider">Clear All</button>
+            </div>
+            
+            <div class="step-visuals">
+                <div id="scenePreview" class="cinema-grid">
+                    <div class="text-center text-slate-400">
+                        <svg class="w-16 h-16 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
+                        <p>Paste URL or Upload Files below</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-controls">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-slate-400">YouTube Extraction</label>
+                        <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=..." class="input-std">
+                        <div class="flex gap-2">
+                            <input type="text" id="timestamps" placeholder="Time: 10, 35, 90 seconds" class="input-std">
+                            <button class="btn-primary" onclick="handleStep1(false)">Extract</button>
+                        </div>
+                    </div>
+                    <div class="space-y-3 flex flex-col">
+                        <label class="block text-xs font-bold text-slate-400">OR Upload Manually</label>
+                        <label class="file-drop flex-grow">
+                            <span class="text-sm font-bold text-slate-600">Click to upload files</span>
+                            <span class="text-xs text-slate-400 mt-1">Combines with extracted frames</span>
+                            <input type="file" id="manualScenes" multiple class="hidden" onchange="handleStep1(true)">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: IDENTITY -->
+        <div class="carousel-step" id="step1">
+            <div class="step-header">
+                <h2 class="text-xl font-bold text-slate-800">Step 2: Character Identity</h2>
+                <span class="text-slate-400 font-mono text-xs">INPUT</span>
+            </div>
+
+            <div class="flex flex-grow overflow-hidden">
+                <!-- Left Visual -->
+                <div class="step-visuals w-1/2 border-r border-slate-100">
+                    <div class="w-full h-full flex items-center justify-center">
+                        <img id="userPreview" class="cinema-asset hidden">
+                        <div id="userPlaceholder" class="text-center">
+                            <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <p class="text-slate-400 font-medium">No Portrait Selected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Controls -->
+                <div class="w-1/2 p-10 flex flex-col justify-center bg-white">
+                    <div class="mb-10">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-3">1. Upload Portrait</label>
+                        <label class="file-drop py-8 bg-slate-50 border-slate-200">
+                            <span class="text-sm font-bold text-slate-600">Select Face Image</span>
+                            <input type="file" id="userFile" onchange="previewUser(this)" class="hidden">
+                        </label>
+                    </div>
+                    <div class="mb-8">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-3">2. Styling Prompt</label>
+                        <textarea id="editPrompt" rows="3" placeholder="e.g. Put me in a black tuxedo, adjust lighting to be dark..." class="input-std resize-none"></textarea>
+                    </div>
+                    <button class="btn-primary w-full py-4 text-lg" onclick="handleStep2()">Add Character</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: REFINE -->
+        <div class="carousel-step" id="step2">
+            <div class="step-header">
+                <h2 class="text-xl font-bold text-slate-800">Step 3: Review & Refine</h2>
+                <button class="btn-secondary text-xs py-1 px-3" onclick="goToStep(3)">Skip to next</button>
+            </div>
+
+            <div class="step-visuals">
+                <div id="editPreview" class="cinema-grid"></div>
+            </div>
+
+            <div class="step-controls">
+                <div class="flex gap-4 items-end">
+                    <div class="flex-grow">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Refine Instructions</label>
+                        <input type="text" id="refinePrompt" placeholder="e.g. Fix the hair edge, make the suit darker..." class="input-std">
+                    </div>
+                    <button class="btn-primary" onclick="handleStep3()">Apply Fixes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: SCRIPT (Fixed Alignment) -->
+        <div class="carousel-step" id="step3">
+            <div class="step-header">
+                <h2 class="text-xl font-bold text-slate-800">Step 4: Video Script</h2>
+                <span class="text-slate-400 font-mono text-xs">VEO 3.1</span>
+            </div>
+
+            <div class="step-visuals">
+                <div id="finalPreview" class="cinema-grid"></div>
+            </div>
+
+            <div class="step-controls">
+                <div class="flex gap-4 items-center">
+                    <div class="flex-grow">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Action & Dialogue</label>
+                        <textarea id="videoPrompt" rows="3" placeholder="Describe motion (e.g. He smiles slowly and looks left...)" class="input-std resize-none"></textarea>
+                    </div>
+                    <div class="flex flex-center">
+                        <button class="btn-primary px-8 py-4" onclick="handleStep4()">Generate Video</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: FINAL -->
+        <div class="carousel-step" id="step4">
+            <div class="step-header">
+                <h2 class="text-xl font-bold text-slate-800">Step 5: Final Premiere</h2>
+                <span class="text-slate-400 font-mono text-xs">Output</span>
+            </div>
+
+            <div class="step-visuals">
+                <div id="videoContainer" class="w-full h-full flex items-center justify-center">
+                    <p class="text-slate-400 italic">Waiting for render...</p>
+                </div>
+            </div>
+
+            <div class="step-controls flex justify-end">
+                <button class="btn-secondary" onclick="resetApp()">Create New Movie</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        let currentStep = 0, maxStep = 0;
+        const loader = document.getElementById('loader');
+        let draggedItem = null;
+
+        function updateCarousel() {
+            document.querySelectorAll('.carousel-step').forEach((s, i) => {
+                s.classList.remove('active', 'prev', 'next');
+                if(i===currentStep) s.classList.add('active');
+                else if(i===currentStep-1) s.classList.add('prev');
+                else if(i===currentStep+1) s.classList.add('next');
+            });
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep >= maxStep;
+        }
+
+        function goToStep(s) { currentStep = s; updateCarousel(); }
+
+        async function resetApp() {
+            if(confirm("Start new project?")) { await fetch('/reset', {method:'POST'}); location.reload(); }
+        }
+
+        async function handleStep1(isManual) {
+            loader.style.display='flex';
+            let res;
+            try {
+                if(isManual) {
+                    const manual = document.getElementById('manualScenes').files;
+                    if(manual.length === 0) { loader.style.display='none'; return; }
+                    const fd = new FormData(); for(let f of manual) fd.append('files', f);
+                    res = await fetch('/upload-manual', {method:'POST', body:fd});
+                } else {
+                    res = await fetch('/extract-yt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:document.getElementById('ytUrl').value, timestamps:document.getElementById('timestamps').value})});
+                }
+                const data = await res.json();
+                if(data.scenes) {
+                    renderDraggableScenes(data.scenes);
+                    maxStep = Math.max(maxStep, 1);
+                    // No auto-advance
+                    updateCarousel();
+                }
+            } catch(e) { alert("Error processing scenes."); }
+            loader.style.display='none';
+        }
+
+        // --- Drag & Drop Logic ---
+        function renderDraggableScenes(scenes) {
+            const container = document.getElementById('scenePreview');
+            container.innerHTML = scenes.map(s => 
+                `<img src="data:image/png;base64,${s.data}" class="cinema-asset" draggable="true" data-filename="${s.filename}">`
+            ).join('');
+            
+            const items = container.querySelectorAll('img');
+            items.forEach(item => {
+                item.addEventListener('dragstart', function(e) { draggedItem = item; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => item.style.opacity = '0.5', 0); });
+                item.addEventListener('dragend', function() { item.style.opacity = '1'; draggedItem = null; syncOrder(); });
+                item.addEventListener('dragover', function(e) { e.preventDefault(); });
+                item.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    if (this !== draggedItem) {
+                        let allItems = Array.from(container.children);
+                        let draggedIdx = allItems.indexOf(draggedItem);
+                        let droppedIdx = allItems.indexOf(this);
+                        if (draggedIdx < droppedIdx) { this.after(draggedItem); } 
+                        else { this.before(draggedItem); }
+                    }
+                });
+            });
+        }
+
+        async function syncOrder() {
+            const container = document.getElementById('scenePreview');
+            const newOrder = Array.from(container.querySelectorAll('img')).map(img => img.dataset.filename);
+            await fetch('/reorder-scenes', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ order: newOrder })
+            });
+        }
+        // -------------------------
+
+        function previewUser(input) {
+            const r = new FileReader();
+            r.onload = e => { document.getElementById('userPreview').src = e.target.result; document.getElementById('userPreview').classList.remove('hidden'); document.getElementById('userPlaceholder').classList.add('hidden'); };
+            r.readAsDataURL(input.files[0]);
+        }
+
+        async function handleStep2() {
+            loader.style.display='flex';
+            try {
+                const res = await fetch('/process-edit', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_image:document.getElementById('userPreview').src, prompt:document.getElementById('editPrompt').value})});
+                const data = await res.json();
+                if(data.images) {
+                    const html = data.images.map(s=>`<img src="data:image/png;base64,${s}" class="cinema-asset">`).join('');
+                    document.getElementById('editPreview').innerHTML = html;
+                    document.getElementById('finalPreview').innerHTML = html;
+                    maxStep = Math.max(maxStep, 2); goToStep(2);
+                } else { alert(data.error || "Generation failed"); }
+            } catch(e) { alert("Server error"); }
+            loader.style.display='none';
+        }
+
+        async function handleStep3() {
+            loader.style.display='flex';
+            try {
+                const res = await fetch('/process-refine', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:document.getElementById('refinePrompt').value})});
+                const data = await res.json();
+                if(data.images) {
+                    const html = data.images.map(s=>`<img src="data:image/png;base64,${s}" class="cinema-asset">`).join('');
+                    document.getElementById('editPreview').innerHTML = html;
+                    document.getElementById('finalPreview').innerHTML = html;
+                    maxStep = Math.max(maxStep, 3); goToStep(3);
+                }
+            } catch(e) { alert("Refinement error"); }
+            loader.style.display='none';
+        }
+
+        async function handleStep4() {
+            loader.style.display='flex';
+            try {
+                const res = await fetch('/generate-video', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({video_prompt: document.getElementById('videoPrompt').value})});
+                const data = await res.json();
+                if(data.video_url) {
+                    document.getElementById('videoContainer').innerHTML = `<video src="${data.video_url}" controls autoplay loop class="cinema-asset"></video>`;
+                    maxStep = Math.max(maxStep, 4); goToStep(4);
+                } else { alert(data.error || "Video generation failed"); }
+            } catch(e) { alert("Video error"); }
+            loader.style.display='none';
+        }
+
+        window.onload = () => { loader.style.display='none'; updateCarousel(); };
+    </script>
+</body>
+</html>
