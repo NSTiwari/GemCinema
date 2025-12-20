@@ -14,7 +14,7 @@ Recreate movie scenes with Gemini 3 Pro Image (Nano Banana Pro) and Veo 3.1.
 
 ## Architecture
 
-<img src="https://github.com/NSTiwari/GemCinema/blob/main/assets/architecture.png">
+<img src="https://github.com/NSTiwari/GemCinema/blob/main/assets/architecture.jpeg">
 
 
 ---
