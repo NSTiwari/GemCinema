@@ -1,4 +1,4 @@
-# GemCinema
+# GemCinema 📽️ 
 Recreate movie scenes with Gemini 3 Pro Image (Nano Banana Pro) and Veo 3.1.
 
 ## Run the Web App:
@@ -12,7 +12,14 @@ Recreate movie scenes with Gemini 3 Pro Image (Nano Banana Pro) and Veo 3.1.
 
 ---
 
-## 📽️ Visual Results
+## Architecture
+
+<img src="https://github.com/NSTiwari/GemCinema/blob/main/assets/architecture.png">
+
+
+---
+
+## Results
 
 ### AI-Generated Storyboard (Gemini 3 Pro)
 *The images below demonstrate the identity merge where the user's portrait is integrated into original movie frames with matched lighting, grain, and era-specific styling.*
