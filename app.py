@@ -247,7 +247,7 @@ def generate_video():
         operation = client.models.generate_videos(
             model="veo-3.1-generate-preview",
             prompt=full_video_prompt,
-            config=types.GenerateVideosConfig(reference_images=refs), resolution="1080p"
+            config=types.GenerateVideosConfig(reference_images=refs)
         )
         while not operation.done:
             time.sleep(5)
