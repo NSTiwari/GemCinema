@@ -36,7 +36,7 @@ Recreate movie scenes with Gemini 3 Pro Image (Nano Banana Pro) and Veo 3.1.
 
 <p>
   <a href="https://www.youtube.com/watch?v=U2xOqgkG1RM" style="text-decoration: none; color: inherit;">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" width="10" alt="Watch on YouTube" style="vertical-align: middle;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" width="30" alt="Watch on YouTube" style="vertical-align: middle;">
     <span style="font-size: 16px; vertical-align: middle; margin-left: 8px;">Watch on YouTube</span>
   </a>
 </p>
