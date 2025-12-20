@@ -25,11 +25,7 @@ Recreate movie scenes with Gemini 3 Pro Image (Nano Banana Pro) and Veo 3.1.
 ### Final Cinematic Premiere (Veo 3.1)
 *The final render takes the edited stills as reference images to generate a consistent, high-definition video sequence with natural motion and stable facial identity.*
 
-<p align="center">
-  <video src="https://github.com/NSTiwari/GemCinema/blob/main/assets/final.mp4" width="100%" controls>
-    Your browser does not support the video tag.
-  </video>
-</p>
+<img src="https://github.com/NSTiwari/GemCinema/blob/main/assets/video.gif">
 
 ---
 
